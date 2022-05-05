@@ -2,8 +2,11 @@ apply plugin: 'com.android.library'
 
 android {
     compileSdkVersion 26
-    buildToolsVersion "26.0.0"
-
+    buildToolsVersion "26.0.2"
+    lintOptions {
+        abortOnError false
+        disable 'InvalidPackage'
+    }
     defaultConfig {
         minSdkVersion 15
         targetSdkVersion 26
@@ -18,6 +21,10 @@ android {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
     }
 }
 
