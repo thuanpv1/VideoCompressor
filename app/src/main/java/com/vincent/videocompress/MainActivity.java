@@ -1,5 +1,6 @@
 package com.vincent.videocompress;
 
+import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
 import android.content.Intent;
 import android.content.res.Configuration;
@@ -10,12 +11,19 @@ import android.os.Environment;
 import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
-import com.vincent.videocompressor.VideoCompress;
+//import com.vincent.videocompressor.VideoCompress;
+
+import com.github.hiteshsondhi88.libffmpeg.ExecuteBinaryResponseHandler;
+import com.github.hiteshsondhi88.libffmpeg.FFmpeg;
+import com.github.hiteshsondhi88.libffmpeg.LoadBinaryResponseHandler;
+import com.github.hiteshsondhi88.libffmpeg.exceptions.FFmpegCommandAlreadyRunningException;
+import com.github.hiteshsondhi88.libffmpeg.exceptions.FFmpegNotSupportedException;
 
 import java.io.File;
 import java.net.URISyntaxException;
@@ -34,11 +42,39 @@ public class MainActivity extends AppCompatActivity {
     private ProgressBar pb_compress;
 
     private long startTime, endTime;
+    private FFmpeg ffmpeg;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        ffmpeg = FFmpeg.getInstance(this);
+        try {
+            //Load the binary
+            Log.d("running", "runngin to here...." + Build.CPU_ABI);
+            ffmpeg.loadBinary(new LoadBinaryResponseHandler() {
+
+                @Override
+                public void onStart() {}
+
+                @Override
+                public void onFailure() {
+                    Log.d("onFailure", "loading library failded.....");
+                }
+
+                @Override
+                public void onSuccess() {
+                    Log.d("onFailure", "loading library success.....");
+                }
+
+                @Override
+                public void onFinish() {}
+            });
+        } catch (FFmpegNotSupportedException e) {
+            // Handle if FFmpeg is not supported by device
+            e.printStackTrace();
+        }
+        CutVideo();
     }
 
     @Override
@@ -46,7 +82,59 @@ public class MainActivity extends AppCompatActivity {
         super.onPostCreate(savedInstanceState);
         initView();
     }
+    private void CutVideo(){
+        @SuppressLint("SdCardPath") String VideoIn = "/sdcard/AsimStorage/Movies/d695900efb9b0c37_VID_20220505_134322.mp4";
+//        @SuppressLint("SdCardPath") String VideoIn = "/sdcard/AsimStorage/Movies/sample-mp4-file.mp4";
+        @SuppressLint("SdCardPath") String VideoOut = "/sdcard/Download/video_compressed.mp4";
+//        String[] test = {"-i "+VideoIn+" -ss 00:01:00 -to 00:02:00 -c copy "+VideoOut};
+//        String[] test = {"-i", VideoIn, "-ss", "00:01:00", "-to", "00:02:00", "-c", "copy", VideoOut};
+        // -i input.mp4 -vcodec libx265 -crf 28 output.mp4
 
+//        String[] test = {"-i", VideoIn, "-vcodec", "libx256", "-crf", "28", VideoOut};
+        String[] test = {"-i", VideoIn, VideoOut};
+        String[] test2 = {"-version"};
+        String[] test3 = {"-help"};
+        try {
+            ffmpeg.execute(test,
+                    new ExecuteBinaryResponseHandler() {
+
+                        @Override
+                        public void onStart() {
+                            //for logcat
+                            Log.w(null,"Cut started");
+                        }
+
+                        @Override
+                        public void onProgress(String message) {
+                            //for logcat
+                            Log.w("onProgress hihi",message.toString());
+                        }
+
+                        @Override
+                        public void onFailure(String message) {
+
+                            Log.w("onFailure==============",message.toString());
+                        }
+
+                        @Override
+                        public void onSuccess(String message) {
+
+                            Log.w("success hihi",message.toString());
+                        }
+
+                        @Override
+                        public void onFinish() {
+
+                            Log.w(null,"Cutting video finished");
+                        }
+                    });
+        } catch (FFmpegCommandAlreadyRunningException e) {
+            // Handle if FFmpeg is already running
+            e.printStackTrace();
+            Log.w(null,e.toString());
+        }
+
+    }
     private void initView() {
         Button btn_select = (Button) findViewById(R.id.btn_select);
         btn_select.setOnClickListener(new View.OnClickListener() {
@@ -67,42 +155,43 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View view) {
                 String destPath = tv_output.getText().toString() + File.separator + "VID_" + new SimpleDateFormat("yyyyMMdd_HHmmss", getLocale()).format(new Date()) + ".mp4";
-                VideoCompress.compressVideoLow(tv_input.getText().toString(), destPath, new VideoCompress.CompressListener() {
-                    @Override
-                    public void onStart() {
-                        tv_indicator.setText("Compressing..." + "\n"
-                                + "Start at: " + new SimpleDateFormat("HH:mm:ss", getLocale()).format(new Date()));
-                        pb_compress.setVisibility(View.VISIBLE);
-                        startTime = System.currentTimeMillis();
-                        Util.writeFile(MainActivity.this, "Start at: " + new SimpleDateFormat("HH:mm:ss", getLocale()).format(new Date()) + "\n");
-                    }
-
-                    @Override
-                    public void onSuccess() {
-                        String previous = tv_indicator.getText().toString();
-                        tv_indicator.setText(previous + "\n"
-                                + "Compress Success!" + "\n"
-                                + "End at: " + new SimpleDateFormat("HH:mm:ss", getLocale()).format(new Date()));
-                        pb_compress.setVisibility(View.INVISIBLE);
-                        endTime = System.currentTimeMillis();
-                        Util.writeFile(MainActivity.this, "End at: " + new SimpleDateFormat("HH:mm:ss", getLocale()).format(new Date()) + "\n");
-                        Util.writeFile(MainActivity.this, "Total: " + ((endTime - startTime)/1000) + "s" + "\n");
-                        Util.writeFile(MainActivity.this);
-                    }
-
-                    @Override
-                    public void onFail() {
-                        tv_indicator.setText("Compress Failed!");
-                        pb_compress.setVisibility(View.INVISIBLE);
-                        endTime = System.currentTimeMillis();
-                        Util.writeFile(MainActivity.this, "Failed Compress!!!" + new SimpleDateFormat("HH:mm:ss", getLocale()).format(new Date()));
-                    }
-
-                    @Override
-                    public void onProgress(float percent) {
-                        tv_progress.setText(String.valueOf(percent) + "%");
-                    }
-                });
+//                CutVideo();
+//                VideoCompress.compressVideoHigh(tv_input.getText().toString(), destPath, new VideoCompress.CompressListener() {
+//                    @Override
+//                    public void onStart() {
+//                        tv_indicator.setText("Compressing..." + "\n"
+//                                + "Start at: " + new SimpleDateFormat("HH:mm:ss", getLocale()).format(new Date()));
+//                        pb_compress.setVisibility(View.VISIBLE);
+//                        startTime = System.currentTimeMillis();
+//                        Util.writeFile(MainActivity.this, "Start at: " + new SimpleDateFormat("HH:mm:ss", getLocale()).format(new Date()) + "\n");
+//                    }
+//
+//                    @Override
+//                    public void onSuccess() {
+//                        String previous = tv_indicator.getText().toString();
+//                        tv_indicator.setText(previous + "\n"
+//                                + "Compress Success!" + "\n"
+//                                + "End at: " + new SimpleDateFormat("HH:mm:ss", getLocale()).format(new Date()));
+//                        pb_compress.setVisibility(View.INVISIBLE);
+//                        endTime = System.currentTimeMillis();
+//                        Util.writeFile(MainActivity.this, "End at: " + new SimpleDateFormat("HH:mm:ss", getLocale()).format(new Date()) + "\n");
+//                        Util.writeFile(MainActivity.this, "Total: " + ((endTime - startTime)/1000) + "s" + "\n");
+//                        Util.writeFile(MainActivity.this);
+//                    }
+//
+//                    @Override
+//                    public void onFail() {
+//                        tv_indicator.setText("Compress Failed!");
+//                        pb_compress.setVisibility(View.INVISIBLE);
+//                        endTime = System.currentTimeMillis();
+//                        Util.writeFile(MainActivity.this, "Failed Compress!!!" + new SimpleDateFormat("HH:mm:ss", getLocale()).format(new Date()));
+//                    }
+//
+//                    @Override
+//                    public void onProgress(float percent) {
+//                        tv_progress.setText(String.valueOf(percent) + "%");
+//                    }
+//                });
             }
         });
 
