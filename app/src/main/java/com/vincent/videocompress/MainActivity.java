@@ -83,15 +83,15 @@ public class MainActivity extends AppCompatActivity {
         initView();
     }
     private void CutVideo(){
-        @SuppressLint("SdCardPath") String VideoIn = "/sdcard/AsimStorage/Movies/d695900efb9b0c37_VID_20220506_163233.mp4";
+        @SuppressLint("SdCardPath") String VideoIn = "/sdcard/AsimStorage/Movies/d695900efb9b0c37_VID_20220507_083408.mp4";
 //        @SuppressLint("SdCardPath") String VideoIn = "/sdcard/AsimStorage/Movies/sample-mp4-file.mp4";
-        @SuppressLint("SdCardPath") String VideoOut = "/sdcard/Download/video_compressed.mp4";
+        @SuppressLint("SdCardPath") String VideoOut = "/sdcard/Download/video_compressed3.mp4";
 //        String[] test = {"-i "+VideoIn+" -ss 00:01:00 -to 00:02:00 -c copy "+VideoOut};
 //        String[] test = {"-i", VideoIn, "-ss", "00:01:00", "-to", "00:02:00", "-c", "copy", VideoOut};
         // -i input.mp4 -vcodec libx265 -crf 28 output.mp4
 
 //        String[] test = {"-i", VideoIn, "-vcodec", "libx256", "-crf", "28", VideoOut};
-        String[] test = {"-i", VideoIn, "-preset", "ultrafast", "-b:v", "100k", VideoOut};
+        String[] test = {"-i", VideoIn, "-c:v", "libx264", "-preset", "ultrafast", "-b:v", "50k", VideoOut};
         String[] test2 = {"-version"};
         String[] test3 = {"-help"};
         try {
